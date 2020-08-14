@@ -144,8 +144,7 @@ def workloadScoringByStatuses(Data, NumOfAllDays, NumOfIntervalDays):
     return scores, scores_total
 
 # WARNING: has O(n^3) cycle, works slow
-
-
+# USE workloadScoringByStatusesChannelsFast(...)
 def workloadScoringByStatusesChannels(Data, NumOfAllDays, NumOfIntervalDays):
     """Function for scoring workload by statuses (In Progress and Done) for one employee, NumOfAllDays = 63, NumOfIntervalDays = 7
     Args:
