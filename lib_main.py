@@ -302,7 +302,7 @@ def workloadScoringByStatusesChannelsFast(Data, NumOfAllDays, NumOfIntervalDays)
     counted = df_period.groupby(['assignee_id', 'status', 'channel', 'week_num']).nunique('id')[['id']].reset_index()
     counted.set_index(['assignee_id', 'status', 'channel', 'week_num'], inplace=True)
 
-    # fill empty groups with zeros
+    # fill empty groups with zeros to calculate means including empty categories
     empty_data = []
     assignees = np.unique(Data.assignee_id)
     statuses = np.unique(Data.status)

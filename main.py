@@ -59,8 +59,6 @@ if os.getenv("CHANNEL"):
 else:
     result, result_total = lib_main.workloadScoringByStatuses(dataframe, 63, 7)
 
-exit()
-
 # insert into bq
 table_total = 'score_result_total'
 if os.getenv("CHANNEL"):
@@ -68,5 +66,6 @@ if os.getenv("CHANNEL"):
 else:
     table_result = 'score_result_status'
 
-# lib_main.insertScoreResultData(result, 'findcsystem', 'xsolla_summer_school', table_result)
-# lib_main.insertScoreResultData(result_total, 'findcsystem', 'xsolla_summer_school', table_total)
+lib_main.insertScoreResultData(result, 'findcsystem', 'xsolla_summer_school', table_result)
+lib_main.insertScoreResultData(result_total, 'findcsystem', 'xsolla_summer_school', table_total)
+
