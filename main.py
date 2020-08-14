@@ -1,10 +1,14 @@
+"""
+Main script to auto analizing data
+Usage: >>> [DEBUG=1] [CHANNEL=1] python3 main.py
+"""
 import os
 
 import pandas as pd
 import dotenv
 from google.oauth2 import service_account
 
-from lib_main import getFreshData, workloadScoringByStatuses, insertScoreResultData
+import lib_main
 
 dotenv.load_dotenv(dotenv.find_dotenv('.env'))
 
@@ -21,18 +25,48 @@ CREDENTIALS = service_account.Credentials.from_service_account_info({
     "client_x509_cert_url": os.getenv("CLIENT_X509_CERT_URL"),
 })
 
-if os.getenv("DEBUG") and os.path.isfile('local_db.csv'):
-    DataFrame = pd.read_csv('local_db.csv')
+# choose fields
+if os.getenv("CHANNEL"):
+    file_name = 'local_db_channel.csv'
+    fields = ['assignee_id', 'status', 'channel']
 else:
-    DataFrame = getFreshData(CREDENTIALS, 'findcsystem')
-    if os.getenv("DEBUG"):
-      DataFrame.to_csv('local_db.csv')
-      
-test_user = DataFrame[:].reset_index(drop=True)
+    file_name = 'local_db.csv'
+    fields = ['assignee_id', 'status']
 
-test_result, test_result_total = workloadScoringByStatuses(test_user, 63, 7)
 
-insertScoreResultData(test_result, 'findcsystem',
-                      'xsolla_summer_school', 'score_result_status')
-insertScoreResultData(test_result_total, 'findcsystem',
-                      'xsolla_summer_school', 'score_result_total')
+# load dataframe
+if os.getenv("DEBUG"):
+    if os.path.isfile(file_name):
+        DataFrame = pd.read_csv(file_name)
+    else:
+        DataFrame = lib_main.getFreshData(CREDENTIALS, 'findcsystem', fields)
+        DataFrame.to_csv(file_name)
+else:
+    DataFrame = lib_main.getFreshData(CREDENTIALS, 'findcsystem', fields)
+
+dataframe = DataFrame[:].reset_index(drop=True)
+
+
+# scoring
+print("Start scoring...")
+if os.getenv("CHANNEL"):
+    result, result_total = lib_main.workloadScoringByStatusesChannelsFast(dataframe, 63, 7)
+
+    print("!INFO: As we can see, there is not a uniform distribution of scores between channels, can be significant")
+    mean_score = result.groupby('channel')['score_value'].mean().rename('mean_score')
+    count_sups = dataframe.groupby('channel')['assignee_id'].count().rename('count')
+    print(pd.DataFrame([mean_score, count_sups]).transpose())
+else:
+    result, result_total = lib_main.workloadScoringByStatuses(dataframe, 63, 7)
+
+exit()
+
+# insert into bq
+table_total = 'score_result_total'
+if os.getenv("CHANNEL"):
+    table_result = 'score_result_status_channel'
+else:
+    table_result = 'score_result_status'
+
+# lib_main.insertScoreResultData(result, 'findcsystem', 'xsolla_summer_school', table_result)
+# lib_main.insertScoreResultData(result_total, 'findcsystem', 'xsolla_summer_school', table_total)
