@@ -1,6 +1,6 @@
 """
 Main script to auto analizing data
-Usage: >>> [DEBUG=1] [CHANNEL=1] python3 main.py
+Usage: >>> [DEBUG=1] [CHANNEL=1] [NOWRITE=1] python3 main.py
 """
 import os
 
@@ -55,7 +55,7 @@ if os.getenv("CHANNEL"):
     print("!INFO: As we can see, there is not a uniform distribution of scores between channels, can be significant")
     mean_score = result.groupby('channel')['score_value'].mean().rename('mean_score')
     count_sups = dataframe.groupby('channel')['assignee_id'].count().rename('count')
-    print(pd.DataFrame([mean_score, count_sups]).transpose())
+    print(pd.DataFrame([mean_score, count_sups]).transpose().fillna(0))
 else:
     result, result_total = lib_main.workloadScoringByStatuses(dataframe, 63, 7)
 
@@ -66,6 +66,6 @@ if os.getenv("CHANNEL"):
 else:
     table_result = 'score_result_status'
 
-lib_main.insertScoreResultData(result, 'findcsystem', 'xsolla_summer_school', table_result)
-lib_main.insertScoreResultData(result_total, 'findcsystem', 'xsolla_summer_school', table_total)
-
+if not os.getenv("NOWRITE"):
+    lib_main.insertScoreResultData(result, 'findcsystem', 'xsolla_summer_school', table_result)
+    lib_main.insertScoreResultData(result_total, 'findcsystem', 'xsolla_summer_school', table_total)

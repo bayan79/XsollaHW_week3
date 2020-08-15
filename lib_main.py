@@ -300,23 +300,6 @@ def workloadScoringByStatusesChannelsFast(Data, NumOfAllDays, NumOfIntervalDays)
 
     # group by (features, week_num) and calculate count in groups
     counted = df_period.groupby(['assignee_id', 'status', 'channel', 'week_num']).nunique('id')[['id']].reset_index()
-    counted.set_index(['assignee_id', 'status', 'channel', 'week_num'], inplace=True)
-
-    # fill empty groups with zeros to calculate means including empty categories
-    empty_data = []
-    assignees = np.unique(Data.assignee_id)
-    statuses = np.unique(Data.status)
-    channels = np.unique(Data.channel.dropna())
-    for assignee in assignees:
-        for status in statuses:
-            for channel in channels:
-                for weeknum in range(7):
-                    group = (assignee, status, channel, weeknum)
-                    if group not in counted.index:
-                        empty_data.append(group)
-    counted = counted.append(
-        pd.DataFrame(np.zeros(len(empty_data)), index=empty_data, columns=['id'], dtype=int))
-    counted.reset_index(inplace=True)
 
     # split on current and previos
     previous = counted[counted['week_num'] != 0].rename({'id': 'count'}, axis=1)
@@ -324,12 +307,7 @@ def workloadScoringByStatusesChannelsFast(Data, NumOfAllDays, NumOfIntervalDays)
         'week_num', axis=1).rename({'id': 'count_last_period'}, axis=1)
 
     def get_group_index(row):
-        """Extract from row a group index, which is a combination of (assignee_id, status, channel)
-        Args:
-            row: DataRow, contains 'assignee_id', 'status', 'channel' fields
-        Return:
-            (assignee_id, status, channel)
-        """
+        """Extract from row a group index"""
         return (row['assignee_id'], row['status'], row['channel'])
 
     # count mean, std and ste foreach group
@@ -413,9 +391,7 @@ def insertScoreResultData(InsertDataFrame, ProjectId, DatasetId, TableId):
     res_df = pd.DataFrame()
     for column in InsertDataFrame.columns:
         column_type = str(InsertDataFrame[column].dtype)
-        db_column_type = types_mapper[
-            column_type] if column_type in types_mapper else 'str'
-
+        db_column_type = types_mapper.get(column_type, default='str')
         res_df[column] = InsertDataFrame[column].astype(db_column_type)
 
     res_df['developer'] = 'kirill.bayandin'
