@@ -38,6 +38,8 @@ else:
     file_name = 'local_db.csv'
     fields = ['assignee_id', 'status']
 
+PERIOD_DAYS = 63
+LAST_DAYS = 7
 
 # load dataframe
 if os.getenv("DEBUG"):
@@ -59,11 +61,11 @@ else:
 
 # scoring research if specified
 if os.getenv("RESEARCH"):
-    result, result_total = Score(dataframe, 63, 7)
+    result, result_total = Score(dataframe, PERIOD_DAYS, LAST_DAYS)
     
-    result_robust, result_total_robust = Score(dataframe, 63, 7, UseRobast=True)
+    result_robust, result_total_robust = Score(dataframe, PERIOD_DAYS, LAST_DAYS, UseRobast=True)
     
-    result_Student, result_total_Student = Score(dataframe, 63, 7, ConfidenceInterval=0.05)
+    result_Student, result_total_Student = Score(dataframe, PERIOD_DAYS, LAST_DAYS, ConfidenceInterval=0.05)
     
     # count_sups = dataframe.groupby('assignee_id').count()
     # print(pd.DataFrame([result_t('assignee_id'),
@@ -76,7 +78,7 @@ if os.getenv("RESEARCH"):
 
 # scoring
 print("Start scoring...")
-result, result_total = Score(dataframe, 63, 7)
+result, result_total = Score(dataframe, PERIOD_DAYS, LAST_DAYS)
 
 # insert into bq
 table_total = 'score_result_total'
