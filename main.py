@@ -1,6 +1,11 @@
 """
 Main script to auto analizing data
-Usage: >>> [DEBUG=1] [CHANNEL=1] [NOWRITE=1] python3 main.py
+Usage: >>> [DEBUG=1] [RESEARCH=1] [CHANNEL=1] python3 main.py
+DEBUG       - use local database storage after loading from BigQuery
+            - dont write results to BigQuery
+RESEARCH    - comparing central values
+            - dont write results to BigQuery
+CHANNEL     - use channel field when scoring
 """
 import os
 
@@ -46,18 +51,32 @@ else:
 
 dataframe = DataFrame[:].reset_index(drop=True)
 
+# set scoring function
+if os.getenv("CHANNEL"):
+    Score = lib_main.workloadScoringByStatusesChannels
+else:
+    Score = lib_main.workloadScoringByStatuses
+
+# scoring research if specified
+if os.getenv("RESEARCH"):
+    result, result_total = Score(dataframe, 63, 7)
+    
+    result_robust, result_total_robust = Score(dataframe, 63, 7, UseRobast=True)
+    
+    result_Student, result_total_Student = Score(dataframe, 63, 7, ConfidenceInterval=0.05)
+    
+    # count_sups = dataframe.groupby('assignee_id').count()
+    # print(pd.DataFrame([result_t('assignee_id'),
+                        # result_total_robust.set_index('assignee_id')]))
+    print(result_total.merge(result_total_robust, on='assignee_id', suffixes=['', '_robust'])\
+                      .merge(result_total_Student, on='assignee_id', suffixes=['', '_Student'])\
+                      .set_index('assignee_id'))
+    # print(pd.DataFrame([result_total, result_total_robust, result_total_Student]))
+    exit()
 
 # scoring
 print("Start scoring...")
-if os.getenv("CHANNEL"):
-    result, result_total = lib_main.workloadScoringByStatusesChannelsFast(dataframe, 63, 7)
-
-    print("!INFO: As we can see, there is not a uniform distribution of scores between channels, can be significant")
-    mean_score = result.groupby('channel')['score_value'].mean().rename('mean_score')
-    count_sups = dataframe.groupby('channel')['assignee_id'].count().rename('count')
-    print(pd.DataFrame([mean_score, count_sups]).transpose().fillna(0))
-else:
-    result, result_total = lib_main.workloadScoringByStatuses(dataframe, 63, 7)
+result, result_total = Score(dataframe, 63, 7)
 
 # insert into bq
 table_total = 'score_result_total'
@@ -66,6 +85,6 @@ if os.getenv("CHANNEL"):
 else:
     table_result = 'score_result_status'
 
-if not os.getenv("NOWRITE"):
+if not os.getenv("DEBUG"):
     lib_main.insertScoreResultData(result, 'findcsystem', 'xsolla_summer_school', table_result)
     lib_main.insertScoreResultData(result_total, 'findcsystem', 'xsolla_summer_school', table_total)
